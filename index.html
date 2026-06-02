@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Tic Tac Toe — with Ishy</title>
+  <style>
+    :root {
+      --bg-1: #0f172a;
+      --bg-2: #1e293b;
+      --card: #1e293b;
+      --cell: #0f172a;
+      --line: #334155;
+      --x: #38bdf8;
+      --o: #f472b6;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #22c55e;
+      --win: #facc15;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    html, body { height: 100%; margin: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: radial-gradient(1200px 800px at 50% -10%, #1d2a4a 0%, var(--bg-1) 55%);
+      color: var(--text);
+      min-height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      overflow-x: hidden;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 420px;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: clamp(28px, 8vw, 40px);
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin: 0 0 4px;
+      background: linear-gradient(90deg, var(--x), var(--o));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle { color: var(--muted); margin: 0 0 28px; font-size: 14px; }
+
+    .screen { animation: fade .35s ease; }
+    @keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+    /* ---------- Menu ---------- */
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 22px;
+      box-shadow: 0 20px 50px rgba(0,0,0,.35);
+    }
+
+    .label { text-align: left; font-size: 13px; color: var(--muted); margin: 0 0 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .6px; }
+
+    .options { display: grid; gap: 10px; margin-bottom: 22px; }
+    .seg { display: grid; grid-auto-flow: column; gap: 8px; background: var(--cell); border-radius: 14px; padding: 6px; }
+    .seg button {
+      border: 0; background: transparent; color: var(--muted);
+      font-size: 15px; font-weight: 600; padding: 12px 8px; border-radius: 10px;
+      cursor: pointer; transition: all .18s ease;
+    }
+    .seg button.active { background: linear-gradient(135deg, var(--x), #6366f1); color: #fff; box-shadow: 0 6px 16px rgba(56,189,248,.3); }
+
+    .hidden { display: none !important; }
+
+    .btn-primary {
+      width: 100%; border: 0; cursor: pointer;
+      background: linear-gradient(135deg, var(--accent), #16a34a);
+      color: #fff; font-size: 17px; font-weight: 700;
+      padding: 16px; border-radius: 14px;
+      box-shadow: 0 10px 24px rgba(34,197,94,.3);
+      transition: transform .12s ease, box-shadow .12s ease;
+    }
+    .btn-primary:active { transform: scale(.97); }
+
+    /* ---------- Game ---------- */
+    .scoreboard { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+    .score { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px 6px; }
+    .score .who { font-size: 12px; color: var(--muted); font-weight: 600; }
+    .score .val { font-size: 24px; font-weight: 800; margin-top: 2px; }
+    .score.x .val { color: var(--x); }
+    .score.o .val { color: var(--o); }
+
+    .status {
+      font-size: 18px; font-weight: 700; margin-bottom: 16px; min-height: 26px;
+      transition: color .2s ease;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      background: var(--line);
+      padding: 10px;
+      border-radius: 20px;
+      box-shadow: 0 20px 50px rgba(0,0,0,.35);
+      aspect-ratio: 1 / 1;
+    }
+
+    .cell {
+      background: var(--cell);
+      border: 0;
+      border-radius: 14px;
+      font-size: clamp(40px, 16vw, 64px);
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .15s ease, transform .1s ease;
+      user-select: none;
+    }
+    .cell:hover:not(.taken) { background: #16223b; }
+    .cell:active:not(.taken) { transform: scale(.95); }
+    .cell.x { color: var(--x); }
+    .cell.o { color: var(--o); }
+    .cell .mark { animation: pop .25s cubic-bezier(.2,1.4,.5,1); }
+    @keyframes pop { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .cell.win { background: var(--win); color: #1e293b !important; box-shadow: 0 0 24px rgba(250,204,21,.6); }
+
+    .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+    .btn-ghost {
+      border: 1px solid var(--line); background: var(--card); color: var(--text);
+      font-size: 15px; font-weight: 600; padding: 14px; border-radius: 14px; cursor: pointer;
+      transition: background .15s ease, transform .12s ease;
+    }
+    .btn-ghost:active { transform: scale(.97); background: var(--cell); }
+
+    .footer { margin-top: 22px; color: var(--muted); font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>Tic Tac Toe</h1>
+    <p class="subtitle">Built with Ishy 🎮</p>
+
+    <!-- ============ MENU SCREEN ============ -->
+    <section id="menu" class="screen">
+      <div class="panel">
+        <p class="label">Game mode</p>
+        <div class="options">
+          <div class="seg" id="modeSeg">
+            <button data-mode="pvp" class="active">2 Players</button>
+            <button data-mode="cpu">Vs Computer</button>
+          </div>
+        </div>
+
+        <div id="cpuOptions" class="hidden">
+          <p class="label">Difficulty</p>
+          <div class="options">
+            <div class="seg" id="diffSeg">
+              <button data-diff="easy" class="active">Easy</button>
+              <button data-diff="hard">Unbeatable</button>
+            </div>
+          </div>
+
+          <p class="label">You play as</p>
+          <div class="options">
+            <div class="seg" id="symbolSeg">
+              <button data-symbol="X" class="active">X (first)</button>
+              <button data-symbol="O">O (second)</button>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn-primary" id="startBtn">Start Game</button>
+      </div>
+    </section>
+
+    <!-- ============ GAME SCREEN ============ -->
+    <section id="game" class="screen hidden">
+      <div class="scoreboard">
+        <div class="score x"><div class="who" id="labelX">Player X</div><div class="val" id="scoreX">0</div></div>
+        <div class="score"><div class="who">Draws</div><div class="val" id="scoreD">0</div></div>
+        <div class="score o"><div class="who" id="labelO">Player O</div><div class="val" id="scoreO">0</div></div>
+      </div>
+
+      <div class="status" id="status">Player X's turn</div>
+
+      <div class="board" id="board">
+        <button class="cell" data-i="0"></button>
+        <button class="cell" data-i="1"></button>
+        <button class="cell" data-i="2"></button>
+        <button class="cell" data-i="3"></button>
+        <button class="cell" data-i="4"></button>
+        <button class="cell" data-i="5"></button>
+        <button class="cell" data-i="6"></button>
+        <button class="cell" data-i="7"></button>
+        <button class="cell" data-i="8"></button>
+      </div>
+
+      <div class="controls">
+        <button class="btn-ghost" id="newRoundBtn">New Round</button>
+        <button class="btn-ghost" id="menuBtn">Main Menu</button>
+      </div>
+    </section>
+
+    <p class="footer">X &amp; O · first to three in a row wins</p>
+  </div>
+
+  <script>
+    // ---------- State ----------
+    const state = {
+      mode: 'pvp',        // 'pvp' | 'cpu'
+      difficulty: 'easy', // 'easy' | 'hard'
+      human: 'X',         // human symbol in cpu mode
+      cpu: 'O',
+      board: Array(9).fill(''),
+      current: 'X',
+      over: false,
+      scores: { X: 0, O: 0, D: 0 },
+    };
+
+    const WIN_LINES = [
+      [0,1,2],[3,4,5],[6,7,8], // rows
+      [0,3,6],[1,4,7],[2,5,8], // cols
+      [0,4,8],[2,4,6],         // diagonals
+    ];
+
+    // ---------- Elements ----------
+    const el = {
+      menu: document.getElementById('menu'),
+      game: document.getElementById('game'),
+      cpuOptions: document.getElementById('cpuOptions'),
+      modeSeg: document.getElementById('modeSeg'),
+      diffSeg: document.getElementById('diffSeg'),
+      symbolSeg: document.getElementById('symbolSeg'),
+      startBtn: document.getElementById('startBtn'),
+      board: document.getElementById('board'),
+      status: document.getElementById('status'),
+      cells: [...document.querySelectorAll('.cell')],
+      scoreX: document.getElementById('scoreX'),
+      scoreO: document.getElementById('scoreO'),
+      scoreD: document.getElementById('scoreD'),
+      labelX: document.getElementById('labelX'),
+      labelO: document.getElementById('labelO'),
+      newRoundBtn: document.getElementById('newRoundBtn'),
+      menuBtn: document.getElementById('menuBtn'),
+    };
+
+    // ---------- Segmented control helper ----------
+    function wireSeg(seg, onPick) {
+      seg.addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        [...seg.children].forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        onPick(btn.dataset);
+      });
+    }
+
+    wireSeg(el.modeSeg, (d) => {
+      state.mode = d.mode;
+      el.cpuOptions.classList.toggle('hidden', d.mode !== 'cpu');
+    });
+    wireSeg(el.diffSeg, (d) => { state.difficulty = d.diff; });
+    wireSeg(el.symbolSeg, (d) => {
+      state.human = d.symbol;
+      state.cpu = d.symbol === 'X' ? 'O' : 'X';
+    });
+
+    // ---------- Start / reset ----------
+    el.startBtn.addEventListener('click', () => {
+      state.scores = { X: 0, O: 0, D: 0 };
+      updateScores();
+      setLabels();
+      el.menu.classList.add('hidden');
+      el.game.classList.remove('hidden');
+      newRound();
+    });
+
+    el.menuBtn.addEventListener('click', () => {
+      el.game.classList.add('hidden');
+      el.menu.classList.remove('hidden');
+    });
+
+    el.newRoundBtn.addEventListener('click', newRound);
+
+    function setLabels() {
+      if (state.mode === 'cpu') {
+        el.labelX.textContent = state.human === 'X' ? 'You (X)' : 'CPU (X)';
+        el.labelO.textContent = state.human === 'O' ? 'You (O)' : 'CPU (O)';
+      } else {
+        el.labelX.textContent = 'Player X';
+        el.labelO.textContent = 'Player O';
+      }
+    }
+
+    function newRound() {
+      state.board = Array(9).fill('');
+      state.current = 'X';
+      state.over = false;
+      el.cells.forEach(c => {
+        c.className = 'cell';
+        c.innerHTML = '';
+      });
+      renderStatus();
+      // If CPU moves first
+      if (state.mode === 'cpu' && state.cpu === 'X') {
+        setTimeout(cpuMove, 350);
+      }
+    }
+
+    // ---------- Gameplay ----------
+    el.board.addEventListener('click', (e) => {
+      const cell = e.target.closest('.cell');
+      if (!cell || state.over) return;
+      const i = +cell.dataset.i;
+      if (state.board[i]) return;
+      // In CPU mode, ignore clicks during the CPU's turn
+      if (state.mode === 'cpu' && state.current === state.cpu) return;
+      makeMove(i, state.current);
+      afterMove();
+    });
+
+    function makeMove(i, player) {
+      state.board[i] = player;
+      const cell = el.cells[i];
+      cell.classList.add('taken', player.toLowerCase());
+      cell.innerHTML = '<span class="mark">' + player + '</span>';
+    }
+
+    function afterMove() {
+      const result = evaluate(state.board);
+      if (result) return endRound(result);
+      state.current = state.current === 'X' ? 'O' : 'X';
+      renderStatus();
+      if (state.mode === 'cpu' && state.current === state.cpu && !state.over) {
+        setTimeout(cpuMove, 350);
+      }
+    }
+
+    function endRound(result) {
+      state.over = true;
+      if (result.winner) {
+        result.line.forEach(i => el.cells[i].classList.add('win'));
+        state.scores[result.winner]++;
+        el.status.textContent = winnerText(result.winner);
+        el.status.style.color = result.winner === 'X' ? 'var(--x)' : 'var(--o)';
+      } else {
+        state.scores.D++;
+        el.status.textContent = "It's a draw! 🤝";
+        el.status.style.color = 'var(--muted)';
+      }
+      updateScores();
+    }
+
+    function winnerText(winner) {
+      if (state.mode === 'cpu') {
+        return winner === state.human ? 'You win! 🎉' : 'Computer wins 🤖';
+      }
+      return 'Player ' + winner + ' wins! 🎉';
+    }
+
+    function renderStatus() {
+      el.status.style.color = state.current === 'X' ? 'var(--x)' : 'var(--o)';
+      if (state.mode === 'cpu') {
+        el.status.textContent = state.current === state.human ? 'Your turn' : 'Computer thinking…';
+      } else {
+        el.status.textContent = 'Player ' + state.current + "'s turn";
+      }
+    }
+
+    function updateScores() {
+      el.scoreX.textContent = state.scores.X;
+      el.scoreO.textContent = state.scores.O;
+      el.scoreD.textContent = state.scores.D;
+    }
+
+    // ---------- Win detection ----------
+    function evaluate(board) {
+      for (const line of WIN_LINES) {
+        const [a,b,c] = line;
+        if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+          return { winner: board[a], line };
+        }
+      }
+      if (board.every(Boolean)) return { winner: null, line: null }; // draw
+      return null; // still going
+    }
+
+    // ---------- Computer AI ----------
+    function cpuMove() {
+      if (state.over) return;
+      let i;
+      if (state.difficulty === 'hard') {
+        i = bestMove(state.board, state.cpu);
+      } else {
+        i = randomMove(state.board);
+      }
+      if (i == null) return;
+      makeMove(i, state.cpu);
+      afterMove();
+    }
+
+    function randomMove(board) {
+      const free = board.map((v, idx) => v ? null : idx).filter(v => v !== null);
+      if (!free.length) return null;
+      return free[Math.floor(Math.random() * free.length)];
+    }
+
+    // Minimax — unbeatable
+    function bestMove(board, player) {
+      const opponent = player === 'X' ? 'O' : 'X';
+
+      function minimax(bd, turn) {
+        const res = evaluate(bd);
+        if (res) {
+          if (res.winner === player) return { score: 10 };
+          if (res.winner === opponent) return { score: -10 };
+          return { score: 0 }; // draw
+        }
+        const moves = [];
+        for (let i = 0; i < 9; i++) {
+          if (!bd[i]) {
+            bd[i] = turn;
+            const result = minimax(bd, turn === 'X' ? 'O' : 'X');
+            moves.push({ index: i, score: result.score });
+            bd[i] = '';
+          }
+        }
+        if (turn === player) {
+          return moves.reduce((best, m) => m.score > best.score ? m : best, { score: -Infinity });
+        } else {
+          return moves.reduce((best, m) => m.score < best.score ? m : best, { score: Infinity });
+        }
+      }
+
+      return minimax(board.slice(), player).index;
+    }
+  </script>
+</body>
+</html>
